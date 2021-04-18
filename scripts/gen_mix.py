@@ -16,7 +16,7 @@ from progressbar import ProgressBar, Bar, Timer, ETA, Percentage
 ########################### 1. Configurations
 ######### parse commands
 FLAGS = gflags.FLAGS
-gflags.DEFINE_string('mode', 'test', 'train or test')
+gflags.DEFINE_string('mode', 'train', 'train or test')
 gflags.DEFINE_boolean('unseen', False, 'is_unseen_test: True or False')
 FLAGS(sys.argv)
 
@@ -26,12 +26,12 @@ speech_path = '../../premix_data/WSJ0_83spks/'  # path to the utternaces of 83 s
 train_noise_path = '../../premix_data/noise_10000/'  # directory of the 10000 training noises
 test_noise_path = '../../premix_data/noise/'  # directory of the test noises
 test_mixture_path = '../data/mixture/test/'
-train_mixture_path = '../data/mixture/train/'
+train_mixture_path = '../data/mixture/train_min/'
 
 ######### settings
-num_train_sentences = 320000
+num_train_sentences = 20000
 num_workers = 8
-folder_cap = 5000  # each folder includes 5000 mixture files at most
+folder_cap = 20000  # each folder includes 5000 mixture files at most
 
 constant = 1.0  # used for energy normalization
 
@@ -56,9 +56,10 @@ if FLAGS.mode == 'train':
 
     # custom a progressbar
     widgets = ['[', Timer(), '](', ETA(), ')', Bar('='), '(', Percentage(), ')']
-    bar = ProgressBar(widgets=widgets, max_value=num_train_sentences)
+    bar = ProgressBar(widgets=widgets, maxval=num_train_sentences)
     bar_count = pymp.shared.list()
     bar_count.append(0)
+    bar.start()
     with pymp.Parallel(num_workers) as p:
         for count in p.range(num_train_sentences):
             # write all examples into an h5py file
@@ -97,9 +98,9 @@ if FLAGS.mode == 'train':
             writer.create_dataset('clean_raw', data=s.astype(np.float32), chunks=True)
             writer.close()
 
-            with p.lock:
-                bar.update(bar_count[0])
-                bar_count[0] += 1
+            # with p.lock:
+            #     bar.update(bar_count[0])
+            #     bar_count[0] += 1
 
     bar.finish()
     print('sleep for 3 secs...')

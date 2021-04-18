@@ -83,7 +83,7 @@ class Args(object):
             if not os.path.isdir(self.train_wav_path):
                 os.makedirs(self.train_wav_path)
             # hyperparameters
-            self.num_train_sentences = 10000
+            self.num_train_sentences = 20000
             self.num_test_sentences = 150
             self.mean_var_num = 1000  # calculate mean and variance from 1000 training examples
             self.lr = 0.0002
@@ -102,7 +102,7 @@ class Args(object):
             # file paths
             self.stat_path = os.path.join(root_path, 'data', 'stat')
             # self.test_mixture_path = '../data/mixture/test/'
-            self.test_mixture_path = '/home/panjiahui/code/Time_Domain/DDAEC/data/mixture/test/'
+            self.test_mixture_path = '/home/ZhangHui/PanJiaHui/code/Time_Domain/DDAEC_min_fbank/data/mixture/test/'
             self.prediction_path = os.path.join(root_path, 'data', 'prediction', self.model_name)
             if not os.path.isdir(self.prediction_path):
                 os.makedirs(self.prediction_path)
@@ -119,7 +119,7 @@ class Args(object):
             if not os.path.isdir(self.wav_path):
                 os.makedirs(self.wav_path)
             # self.test_mixture_path = '../data/mixture/test/'
-            self.test_mixture_path = '/home/panjiahui/code/Time_Domain/DDAEC/data/mixture/test/'
+            self.test_mixture_path = '/home/ZhangHui/PanJiaHui/code/Time_Domain/DDAEC_min_fbank/data/mixture/test/'
             self.prediction_path = os.path.join(root_path, 'data', 'prediction', self.model_name)
             # hyperparameters
             self.num_test_sentences = 150

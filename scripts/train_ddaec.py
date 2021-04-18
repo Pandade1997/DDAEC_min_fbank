@@ -6,7 +6,6 @@ import torch
 from models import Model
 from argparsers import ArgParser, Args
 
-
 def main():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True

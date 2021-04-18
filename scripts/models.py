@@ -6,6 +6,7 @@ import shutil
 import numpy as np
 import h5py
 import torch
+from tensorboardX import SummaryWriter
 
 torch.backends.cudnn.benchmark = True
 import torchvision.transforms as transforms
@@ -28,6 +29,8 @@ import soundfile as sf
 from speechbrain.lobes.features import Fbank
 import speechbrain as sb
 import torch.nn.functional as F
+
+summary = SummaryWriter('./log_loss')
 
 
 class Checkpoint(object):
@@ -79,7 +82,6 @@ class Model(object):
         self.width = args.width
         self.srate = 16000
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
         print(self.device)
 
     def train(self, args):
@@ -160,6 +162,7 @@ class Model(object):
         print('counter', counter)
         ttime = 0.
         cnt = 0.
+        iteration = 0
         print('best_loss', best_loss)
         for epoch in range(start_epoch, self.max_epoch):
             accu_train_loss = 0.0
@@ -170,6 +173,7 @@ class Model(object):
             start = timeit.default_timer()
             for i, (features, labels, nframes, feat_size, label_size, get_filename) in enumerate(
                     train_loader):  # features:torch.Size([4, 1, 250, 512])
+                iteration += 1
                 labels_cpu = labels
                 i += start_iter
                 features, labels = features.to(self.device), labels.to(self.device)  # torch.Size([4, 1, 250, 512])
@@ -211,26 +215,34 @@ class Model(object):
                     # fbank_loss
                     loss_fbank += F.mse_loss(est_sig_feats, ideal_sig_feats, True)
 
-                loss_fbank /= len(get_filename)
+                loss_fbank /= 100 * len(get_filename)
+                # print(loss_fbank)
+                # loss_fbank = 1 / (1 + math.exp(loss_fbank))
 
                 outputs = outputs[:, :, :labels.shape[-1]]
 
                 loss1 = criterion(outputs, labels, loss_mask, nframes)
                 loss2 = criterion1(outputs, labels, loss_mask, nframes)
+                # print(loss1)
+                # print(loss2)
 
                 # loss = 0.8 * loss1 + 0.2 * loss2
                 loss = 0.4 * loss1 + 0.1 * loss2 + 0.5 * loss_fbank
+
                 loss.backward()
                 optimizer.step()
                 # calculate losses
                 running_loss = loss.data.item()
                 accu_train_loss += running_loss
 
+                # train-loss show
+                summary.add_scalar('Train Loss', accu_train_loss, iteration)
+
                 cnt += 1.
                 counter += 1
                 counter1 += 1
 
-                del loss, loss1, loss2, outputs, loss_mask, features, labels
+                del loss, loss_fbank, loss1, loss2, outputs, loss_mask, features, labels
                 end = timeit.default_timer()
                 curr_time = end - start
                 ttime += curr_time
@@ -245,7 +257,7 @@ class Model(object):
 
                     avg_train_loss = accu_train_loss / cnt
 
-                    avg_eval_loss = self.validate(net, eval_loader)
+                    avg_eval_loss = self.validate(net, eval_loader, iteration)
 
                     net.train()
 
@@ -293,7 +305,7 @@ class Model(object):
         metric_logging(self.log_path, self.model_name + '_metric_log.txt', epoch, [avg_st, avg_sn, avg_pe])
         start_iter = 0.
 
-    def validate(self, net, eval_loader):
+    def validate(self, net, eval_loader, iteration):
         # print('********** Started evaluation on validation set ********')
         net.eval()
 
@@ -323,6 +335,8 @@ class Model(object):
                 #      'mtime/utternace = {:.4f}'.format(k+1, self.num_test_sentences, eval_loss, curr_time, mtime))
 
             avg_eval_loss = accu_eval_loss / cnt
+            summary.add_scalar('Avg Eval Loss', avg_eval_loss, iteration)
+
         net.train()
         return avg_eval_loss
 
